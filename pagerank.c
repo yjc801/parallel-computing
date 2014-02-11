@@ -51,6 +51,7 @@ double* pageRank(int n, double *value, int* colind, int *rbegin){
   int iter;			// iteration
   double y[n];		// temp array to store pagerank vector
   double a;			// alpha
+  double thrhd;		// threshhold for error
   double maxerr;	// max error
 
 	x = (double *)malloc(sizeof y);
@@ -58,17 +59,15 @@ double* pageRank(int n, double *value, int* colind, int *rbegin){
 	for (i = 0; i < n; i++){
 		x[i] = 1.0/n;
 	}
-
+	a = CONST_ALPHA;
 	iter = 0;
-	a = 0.85;
 	maxerr = 1.0;
-	double thrhd = 10e-5;
-
+	thrhd = CONST_TOL;
 	while (maxerr > thrhd) {   //termination condition
 		maxerr = 0;
 		iter+=1;
 
-#pragma omp parallel shared(n,a,maxerr)
+#pragma omp parallel shared(n,a) reduction(max:maxerr)
 {
 		int k; 			//counteer
 		int k1,k2,j; 	//index
@@ -76,7 +75,7 @@ double* pageRank(int n, double *value, int* colind, int *rbegin){
 		double tmp;	// updated x[i]
 	 	double error;	// error between updated value and previous value
 		int pid = omp_get_thread_num();  // thread id
-#pragma omp for
+#pragma omp for schedule(dynamic,100)
 	  for (i = 0; i < n; i++){
 	  		tmp = 0;
 	  		k1 = rbegin[i];
@@ -92,8 +91,7 @@ double* pageRank(int n, double *value, int* colind, int *rbegin){
 	  		prev = x[i];
 	  		y[i] = tmp;
 	  		error = fabs(tmp - prev);
-	  		// printf("error of x%d is %e\n", i,error);
-	  		if(error > maxerr){
+			if(error > maxerr){
 	  			maxerr = error;
 	  		}
 		}// end for loop
@@ -103,11 +101,11 @@ double* pageRank(int n, double *value, int* colind, int *rbegin){
 		}
 }// end parallel
 
-		double sum = 0;
-		for (i = 0; i < n; i++){
-			sum += x[i];
-		}
-		printf("The sum of vector is %e. Max error is %e\n", sum, maxerr);
+//		double sum = 0;
+//		for (i = 0; i < n; i++){
+//			sum += x[i];
+//		}
+//		printf("The sum of vector is %e. Max error is %e\n", sum, maxerr);
 	}// end while loop
 
 	printf("Iteration is %d\n", iter);
