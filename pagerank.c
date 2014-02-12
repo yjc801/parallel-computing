@@ -1,3 +1,4 @@
+#include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -43,7 +44,7 @@ void readfile(char *fileName, int *n, double **value, int **colind, int **rbegin
 }
 
 
-double* pageRank(int n, double *value, int* colind, int *rbegin){
+double* pageRank(int n, int chunksize, double *value, int* colind, int *rbegin){
 
   // Initialization
   double* x;		//pagerank vector
@@ -63,6 +64,7 @@ double* pageRank(int n, double *value, int* colind, int *rbegin){
 	iter = 0;
 	maxerr = 1.0;
 	thrhd = CONST_TOL;
+	
 	while (maxerr > thrhd) {   //termination condition
 		maxerr = 0;
 		iter+=1;
@@ -74,8 +76,8 @@ double* pageRank(int n, double *value, int* colind, int *rbegin){
 		double prev;// x[i] before updating
 		double tmp;	// updated x[i]
 	 	double error;	// error between updated value and previous value
-		int pid = omp_get_thread_num();  // thread id
-#pragma omp for schedule(dynamic,100)
+	//	int pid = omp_get_thread_num();  // thread id
+#pragma omp for schedule(dynamic,chunksize)
 	  for (i = 0; i < n; i++){
 	  		tmp = 0;
 	  		k1 = rbegin[i];
@@ -107,7 +109,6 @@ double* pageRank(int n, double *value, int* colind, int *rbegin){
 //		}
 //		printf("The sum of vector is %e. Max error is %e\n", sum, maxerr);
 	}// end while loop
-
 	printf("Iteration is %d\n", iter);
 	return x;
 }
@@ -128,10 +129,17 @@ int main(int argc, char* argv[]){
 	int n;
 	struct timeval tv1,tv2;
 	readfile(argv[1],&n,&value,&colind,&rbegin);
+	int chunksize;
+	printf("Enter chunksize:\n");
+	scanf("%d",&chunksize);
+	printf("Chunksize is: %d\n",chunksize);
+//	for (chunksize=1;chunksize<10e5;chunksize=10*chunksize){
+//	printf("Chunksize %d.\n",chunksize);
 	gettimeofday(&tv1,NULL);
-	answer=pageRank(n,value,colind,rbegin);
+	answer=pageRank(n,chunksize,value,colind,rbegin);
 	gettimeofday(&tv2,NULL);
 	printf("#Threads=%d, Time=%10.5f\n",omp_get_max_threads(),((double)(tv2.tv_sec-tv1.tv_sec)+(double)(tv2.tv_usec-tv1.tv_usec)/1000000));
+//	}
 	output(n,answer);
 	if (value!=NULL) {free(value);value=NULL;}
 	if (colind!=NULL) {free(colind);colind=NULL;}
