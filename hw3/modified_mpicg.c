@@ -120,41 +120,43 @@ double* cg(int n, double *value, int* colind, int* rbegin, double *b, int rank, 
 	double alpha, beta;
 	double tmp; 		// temporary var
 	int local_n;
-	double local_sum_r,local_sum_pq, local_sum_r_next;	// local sum
 	double sum_r, sum_pq, sum_r_next; // global sum
-	double *local_r;
-	double *local_r_next;
-	double *local_p;
-	double *local_x;
+	double *r_next;
+	double *r;
 	double *local_q;
+	double *q;
 	double *p;
 	double *x;
+	double *global_b;
 
 	// Initialization
 	local_n = n/nproc;
 	
 	// local arrays
-	local_r = 		(double *) malloc(local_n*sizeof(double));
-	local_r_next = 	(double *) malloc(local_n*sizeof(double));
-	local_p = 		(double *) malloc(local_n*sizeof(double));
 	local_q = 		(double *) malloc(local_n*sizeof(double));
-	local_x = 		(double *) malloc(local_n*sizeof(double));
-
+	
 	// global arrays
 	p = 			(double *) malloc(n*sizeof(double));
 	x = 			(double *) malloc(n*sizeof(double));
+	q =		 		(double *) malloc(n*sizeof(double));
+	r =		 		(double *) malloc(n*sizeof(double));
+	r_next = 		(double *) malloc(n*sizeof(double));
+	global_b = 		(double *) malloc(n*sizeof(double));
 
 	iter = 0;
 
-	for (i = 0; i < local_n; i++){
-		local_x[i] = 0;
+	for (i = 0; i < n; i++){
+		x[i] = 0;
 	}
-	for (i = 0; i < local_n; i++){
-		local_p[i] = b[i];
-		local_r[i] = b[i];
+
+	MPI_Allgather(b,local_n,MPI_DOUBLE,global_b,local_n,MPI_DOUBLE,MPI_COMM_WORLD); 
+	// if we assume b = ones(n,1), we can remove this
+
+	for (i = 0; i < n; i++){
+		p[i] = global_b[i];
+		r[i] = global_b[i];
 	}
 		
-	MPI_Allgather(local_p,local_n,MPI_DOUBLE,p,local_n,MPI_DOUBLE,MPI_COMM_WORLD);
 
 	// Iteration
 	while (iter < MAX_ITER){
@@ -174,55 +176,47 @@ double* cg(int n, double *value, int* colind, int* rbegin, double *b, int rank, 
 	  		local_q[i] = tmp;
 		}
 
-  		local_sum_r = 0;
-  		local_sum_pq = 0;
+		MPI_Allgather(local_q,local_n,MPI_DOUBLE,q,local_n,MPI_DOUBLE,MPI_COMM_WORLD);
 
-  		for (i = 0; i < local_n; i++){
-  			local_sum_r += pow(local_r[i],2);
-  			local_sum_pq += local_p[i]*local_q[i];
+
+		sum_r = 0;
+		sum_pq = 0;
+  		for (i = 0; i < n; i++){
+  			sum_r += pow(r[i],2);
+  			sum_pq += p[i]*q[i];
 	  	}
-
-  		MPI_Allreduce(&local_sum_r, &sum_r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); 
-  		MPI_Allreduce(&local_sum_pq, &sum_pq, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); 
 
   		alpha = sum_r/sum_pq;
 
-  		for (i = 0; i < local_n; i++){
-  			local_x[i]+=alpha*local_p[i];
-  			local_r_next[i] = local_r[i] - alpha*local_q[i];
-  			local_r[i] = local_r_next[i];
+  		for (i = 0; i < n; i++){
+  			x[i]+=alpha*p[i];
+  			r_next[i] = r[i] - alpha*q[i];
+  			r[i] = r_next[i];
   		}
   		
-  		local_sum_r_next = 0;
-  		 for (i = 0; i < local_n; i++){
-  			local_sum_r_next += pow(local_r_next[i],2);
+  		sum_r_next = 0;
+  		for (i = 0; i < n; i++){
+  			sum_r_next += pow(r_next[i],2);
  		}
   		
-  		MPI_Allreduce(&local_sum_r_next, &sum_r_next, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); 
-		
 		if (sqrt(sum_r_next) < CONST_TOL) break;
   		
   		beta = sum_r_next/sum_r;
 
-   		for (i = 0; i < local_n; i++){
-   			local_p[i] = local_r[i]+beta*local_p[i];
+   		for (i = 0; i < n; i++){
+   			p[i] = r[i]+beta*p[i];
    		}
 
-
-  		MPI_Allgather(local_p,local_n,MPI_DOUBLE,p,local_n,MPI_DOUBLE,MPI_COMM_WORLD);
   		iter = iter + 1;
 	} // end while
-
-  	 MPI_Allgather(local_x,local_n,MPI_DOUBLE,x,local_n,MPI_DOUBLE,MPI_COMM_WORLD);
 	
 	if (rank == 0) printf("Total # of iteration = %d\nResidual norm = %e\n",iter,sqrt(sum_r_next));
 	
-	free(local_p);
-	free(local_q);
-	free(local_r);
-	free(local_r_next);
-	free(local_x);
 	free(p);
+	free(q);
+	free(r);
+	free(r_next);
+	free(global_b);
 	
 	return x;
 }
