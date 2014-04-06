@@ -21,22 +21,22 @@ double** matrix_mult(	// Return the the local block of C=A*B computed by Fox's a
   int i,j,m,k;
   double **temp;
   allocateMatrix(np,&temp);
-  
+
   for (m = 0; m < nproc_row; m++){
+
     if (m != 0)
       MPI_Sendrecv_replace(&(mB[0][0]),np*np,MPI_DOUBLE,(col_rank+nproc_row-1)%nproc_row,0,(col_rank+1)%nproc_row,0,col_comm,MPI_STATUS_IGNORE);
 
-    for (k = 0; k < nproc_row; k++){
-      if ((row_rank + m) % nproc_row == col_rank){
-        for (i = 0; i < np; i++){
-          for (j = 0; j < np; j++){
-            temp[i][j] = mA[i][j];
-          }
+    if ((col_rank + m) % nproc_row == row_rank){
+      for (i = 0; i < np; i++){
+        for (j = 0; j < np; j++){
+          temp[i][j] = mA[i][j];
         }
       }
-      MPI_Bcast(&(temp[0][0]),np*np,MPI_DOUBLE,(m+k)%nproc_row,row_comm);
-      MPI_Barrier(row_comm);
     }
+ 
+    MPI_Bcast(&(temp[0][0]),np*np,MPI_DOUBLE,(col_rank+m)%nproc_row,row_comm);
+    MPI_Barrier(row_comm);
 
     for (i = 0; i < np; i++){
       for (j = 0; j < np; j++){
