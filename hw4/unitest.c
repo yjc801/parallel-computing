@@ -3,7 +3,11 @@
 #include <stdlib.h>
 #include <math.h>
 
+<<<<<<< HEAD
 #define ITS 1
+=======
+#define ITS 10
+>>>>>>> d3d837eb0907ceccaa6a16e204d990598fe5676a
 
 void MPItest(int rank, int nproc, int size, double *buf, double *buf2){
 /*
@@ -17,6 +21,7 @@ void MPItest(int rank, int nproc, int size, double *buf, double *buf2){
     if (rank == 0) {
       MPI_Send(buf2,size,MPI_DOUBLE,rank+1,0,MPI_COMM_WORLD);
       MPI_Recv(buf,size,MPI_DOUBLE,nproc-1,0,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+<<<<<<< HEAD
       printf("%s\n", buf[1]);   
     }
     else if (rank == nproc - 1) {
@@ -26,6 +31,14 @@ void MPItest(int rank, int nproc, int size, double *buf, double *buf2){
     }else{
       MPI_Recv(buf,size,MPI_DOUBLE,rank-1,0,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
       printf("%s\n", buf[1]);
+=======
+    }
+    else if (rank == nproc - 1) {
+      MPI_Recv(buf,size,MPI_DOUBLE,rank-1,0,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Send(buf,size,MPI_DOUBLE,0,0,MPI_COMM_WORLD);
+    }else{
+      MPI_Recv(buf,size,MPI_DOUBLE,rank-1,0,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+>>>>>>> d3d837eb0907ceccaa6a16e204d990598fe5676a
       MPI_Send(buf,size,MPI_DOUBLE,rank+1,0,MPI_COMM_WORLD); 
   }
 }

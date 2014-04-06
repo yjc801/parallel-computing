@@ -173,14 +173,21 @@ double* cg(int n, double *value, int* colind, int* rbegin, double *b, int rank, 
 		  	}
 	  		local_q[i] = tmp;
 		}
+<<<<<<< HEAD
+=======
 
+>>>>>>> e119b6a6c5b079b1e41e47905c931cf90a8cbd67
   		local_sum_r = 0;
   		local_sum_pq = 0;
 
   		for (i = 0; i < local_n; i++){
   			local_sum_r += pow(local_r[i],2);
   			local_sum_pq += local_p[i]*local_q[i];
+<<<<<<< HEAD
+  	}
+=======
 	  	}
+>>>>>>> e119b6a6c5b079b1e41e47905c931cf90a8cbd67
 
   		MPI_Allreduce(&local_sum_r, &sum_r, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); 
   		MPI_Allreduce(&local_sum_pq, &sum_pq, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); 
@@ -199,24 +206,34 @@ double* cg(int n, double *value, int* colind, int* rbegin, double *b, int rank, 
  		}
   		
   		MPI_Allreduce(&local_sum_r_next, &sum_r_next, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); 
+<<<<<<< HEAD
+		if (sqrt(sum_r_next) < CONST_TOL) break;
+=======
 		
 		if (sqrt(sum_r_next) < CONST_TOL) break;
   		
+>>>>>>> e119b6a6c5b079b1e41e47905c931cf90a8cbd67
   		beta = sum_r_next/sum_r;
 
    		for (i = 0; i < local_n; i++){
    			local_p[i] = local_r[i]+beta*local_p[i];
    		}
 
+<<<<<<< HEAD
+=======
 
+>>>>>>> e119b6a6c5b079b1e41e47905c931cf90a8cbd67
   		MPI_Allgather(local_p,local_n,MPI_DOUBLE,p,local_n,MPI_DOUBLE,MPI_COMM_WORLD);
   		iter = iter + 1;
 	} // end while
 
   	 MPI_Allgather(local_x,local_n,MPI_DOUBLE,x,local_n,MPI_DOUBLE,MPI_COMM_WORLD);
 	
+<<<<<<< HEAD
+=======
 	if (rank == 0) printf("Total # of iteration = %d\nResidual norm = %e\n",iter,sqrt(sum_r_next));
 	
+>>>>>>> e119b6a6c5b079b1e41e47905c931cf90a8cbd67
 	free(local_p);
 	free(local_q);
 	free(local_r);
